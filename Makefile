@@ -1,14 +1,14 @@
 # Copyright 2014 Jiří Janoušek <janousek.jiri@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met: 
-# 
+# modification, are permitted provided that the following conditions are met:
+#
 # 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer. 
+#    list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright notice,
 #    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution. 
-# 
+#    and/or other materials provided with the distribution.
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,15 +22,33 @@
 
 # Service integration id
 APP_ID = this_is_my_jam
+# Dependencies
+DEPS = rsvg-convert
 # Default installation destination
 DEST ?= $(HOME)/.local/share/nuvolaplayer3/web_apps
+# Size of PNG app icon
+ICON_SIZE ?= 48
 
 help:
+	@echo "make deps                - check whether dependencies are satisfied"
+	@echo "make build               - build files (graphics, etc.)"
+	@echo "make clean               - clean source directory"
 	@echo "make install             - install to user's local directory (~/.local)"
 	@echo "make install DEST=/path  - install to '/path' directory"
 	@echo "make uninstall           - uninstall from user's local directory (~/.local)"
 
-install: LICENSE metadata.json integrate.js
+deps:
+	@$(foreach dep, $(DEPS), which $(dep) > /dev/null || (echo "Program $(dep) not found"; exit 1;);)
+
+build: deps icon.png
+
+icon.png : src/icon.svg
+	rsvg-convert -w $(ICON_SIZE) -h $(ICON_SIZE) $< -o $@
+
+clean:
+	rm -f icon.png
+
+install: LICENSE metadata.json integrate.js icon.png
 	install -vCd $(DEST)/$(APP_ID)
 	install -vC $^ $(DEST)/$(APP_ID)
 
