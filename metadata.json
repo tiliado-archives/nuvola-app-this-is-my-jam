@@ -1,8 +1,9 @@
 {
     "id": "this_is_my_jam",
     "name": "This is My Jam",
-    "maintainer_name": "Jan Vlnas?",
-    "maintainer_link": "https://github.com/FIXME",
+    "home_url": "https://www.thisismyjam.com/",
+    "maintainer_name": "Jan Vlnas",
+    "maintainer_link": "https://github.com/jnv",
     "version_major": 2,
     "version_minor": 0,
     "api_major": 3,
