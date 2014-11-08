@@ -72,8 +72,9 @@
     })();
 
     /**
-     * Get a state for a playlist's prev and next buttons.
-     * @return {{prev: bool, next: bool}}
+     * Helper for global controls; check if the named element is clickable.
+     * @param  {string} type Name of the element to check
+     * @return {bool}
      */
     var canPressButton = function(type)
     {
@@ -83,30 +84,44 @@
 
     /**
      * Return an URL of the image of (hopefully) currently playing track
-     * TODO: store the first found album art with the currently playing track,
-     *       so the visiting the profile page does not replace a correct album art
-     *       - OTOH, if I am playing a playlist and I am on the profile page, the incorrect
-     *       art will be loaded and stored
+     * NOTE: TIMJ does not expose art for a currently playing track globally,
+     *   so this may cause some problems e.g. when visiting a profile page.
+     *   For example, when you visit an unrelated profile page and the player skips to the next song,
+     *   then we have no reference to update image until you visit playlist or current song's profile.
      **/
-    var getArtLocation = function()
-    {
-        var img = null;
-        // On Playlist page, things are easy
-        img = document.querySelector(".blackHole.playing img");
-        if (img)
-        {
-            return img.getAttribute("data-thumb");
-        }
-        // Let's try a profile page
-        img = document.querySelector("#jamHolder img");
-        if (img)
-        {
-            return img.src;
-        }
+    var getArtLocation = (function(){
+        var current = null;
+        return function() {
+            var img = null;
+            var holder = null;
 
-        // No can do
-        return null;
-    };
+            try {
+                // On the playlist page, things are easy
+                holder = document.querySelector(".blackHole.playing, .blackHole.paused, .blackHole.spin");
+                if (holder)
+                {
+                    img = holder.querySelector("img");
+                    current = img.getAttribute("data-thumb");
+                    return current;
+                }
+
+                // Let's try a profile page
+                holder = document.getElementById("jamHolder");
+                // we care only if the profile page is for a playing or paused track
+                if (holder && holder.querySelector(".playing, .paused, .spin"))
+                {
+                    img = holder.querySelector("img");
+                    current = img.src;
+                    return current;
+                }
+            }
+            catch (ex) {
+            }
+            // elsewhere cache the last known value
+            return current;
+        };
+
+    })();
 
 
     /**
@@ -234,7 +249,6 @@
         }
         catch (ex)
         {
-            console.log(ex);
         }
         player.setTrack(track);
 
@@ -258,7 +272,6 @@
         }
         catch (ex)
         {
-            console.log(ex);
         }
         // Update actions
         player.setCanGoPrev(canPrev);
