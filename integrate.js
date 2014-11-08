@@ -43,6 +43,8 @@
     var C_ = Nuvola.Translate.pgettext;
     var ngettext = Nuvola.Translate.ngettext;
 
+    var ACTION_LIKE = "toggle-like";
+
     //////////////////////// TMIJ bindings
 
     /**
@@ -120,16 +122,25 @@
             return PlaybackState.UNKNOWN;
         }
 
-        if (el.className.match(/playing$/))
+        if (el.classList.contains("playing"))
         {
             return PlaybackState.PLAYING;
         }
-        else if (el.className.match(/paused$/))
+        else if (el.classList.contains("paused"))
         {
             return PlaybackState.PAUSED;
         }
 
         return PlaybackState.UNKNOWN;
+    };
+
+    var getLikeState = function()
+    {
+        var el = getElement("like");
+        if (!el) {
+            return false;
+        }
+        return el.classList.contains("liked");
     };
 
     var doPlayPause = function()
@@ -170,6 +181,7 @@
     {
         Nuvola.WebApp._onInitAppRunner.call(this, emitter);
 
+        Nuvola.actions.addAction("playback", "win", ACTION_LIKE, C_("Action", "Love"), null, null, null, false);
     };
 
 
@@ -197,6 +209,8 @@
     // Page is ready for magic
     WebApp._onPageReady = function()
     {
+        player.addExtraActions([ACTION_LIKE]);
+
         this.state = PlaybackState.UNKNOWN;
         // Start update routine
         this.update();
@@ -252,6 +266,10 @@
         player.setCanPlay(canPlay);
         player.setCanPause(canPause);
 
+        // extra actions
+        Nuvola.actions.updateEnabledFlag(ACTION_LIKE, canPressButton("like"));
+        Nuvola.actions.updateState(ACTION_LIKE, getLikeState());
+
         // Schedule update
         setTimeout(this.update.bind(this), 500);
     };
@@ -282,6 +300,9 @@
                 break;
             case PlayerAction.NEXT_SONG:
                 clickOnElement(getElement("next"));
+                break;
+            case ACTION_LIKE:
+                clickOnElement(getElement("like"));
                 break;
         }
     };
