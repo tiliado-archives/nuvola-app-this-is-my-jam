@@ -34,8 +34,6 @@
     var PlaybackState = Nuvola.PlaybackState;
     var PlayerAction = Nuvola.PlayerAction;
 
-    var clickOnElement = Nuvola.clickOnElement;
-
     // Create new WebApp prototype
     var WebApp = Nuvola.$WebApp();
 
@@ -45,15 +43,7 @@
 
     var ACTION_LIKE = "toggle-like";
 
-    //////////////////////// TMIJ bindings
-
-    /**
-     * Get an element of a given type from the document.
-     * Element IDs are contained within a closure to prevent usage outside functions' scope.
-     * @param  {string} type Control type, e.g. prev, next, play, like…
-     * @return {Element}
-     */
-    var getElement = (function elementSelector()
+    var timj = (function()
     {
         var ELEM_IDS = {
             prev: "backwards",
@@ -65,120 +55,140 @@
             playAll: "playAllJams"
         };
 
-        return function(type)
+        /**
+         * Get an element of a given type from the document.
+         * @param  {string} type Control type, e.g. prev, next, play, like…
+         * @return {Element}
+         */
+        var getElement = function(type)
         {
             return document.getElementById(ELEM_IDS[type]);
         };
-    })();
 
-    /**
-     * Helper for global controls; check if the named element is clickable.
-     * @param  {string} type Name of the element to check
-     * @return {bool}
-     */
-    var canPressButton = function(type)
-    {
-        var el = getElement(type);
-        return el && !el.hasAttribute("disabled");
-    };
-
-    /**
-     * Return an URL of the image of (hopefully) currently playing track
-     * NOTE: TIMJ does not expose art for a currently playing track globally,
-     *   so this may cause some problems e.g. when visiting a profile page.
-     *   For example, when you visit an unrelated profile page and the player skips to the next song,
-     *   then we have no reference to update image until you visit playlist or current song's profile.
-     **/
-    var getArtLocation = (function(){
-        var current = null;
-        return function() {
-            var img = null;
-            var holder = null;
-
-            try {
-                // On the playlist page, things are easy
-                holder = document.querySelector(".blackHole.playing, .blackHole.paused, .blackHole.spin");
-                if (holder)
-                {
-                    img = holder.querySelector("img");
-                    current = img.getAttribute("data-thumb");
-                    return current;
-                }
-
-                // Let's try a profile page
-                holder = document.getElementById("jamHolder");
-                // we care only if the profile page is for a playing or paused track
-                if (holder && holder.querySelector(".playing, .paused, .spin"))
-                {
-                    img = holder.querySelector("img");
-                    current = img.src;
-                    return current;
-                }
-            }
-            catch (ex) {
-            }
-            // elsewhere cache the last known value
-            return current;
+        /**
+         * Helper for global controls; check if the named element is clickable.
+         * @param  {string} type Name of the element to check
+         * @return {bool}
+         */
+        var canClick = function(type)
+        {
+            var el = getElement(type);
+            return el && !el.hasAttribute("disabled");
         };
 
-    })();
-
-
-    /**
-     * Get play state depending on the play button
-     * @return {PlaybackState}
-     */
-    var getState = function()
-    {
-        var el = getElement("play");
-
-        if (!el)
+        /**
+         * Return an URL of the image of (hopefully) currently playing track
+         * NOTE: TIMJ does not expose art for a currently playing track globally,
+         *   so this may cause some problems e.g. when visiting a profile page.
+         *   For example, when you visit an unrelated profile page and the player skips to the next song,
+         *   then we have no reference to update image until you visit playlist or current song's profile.
+         **/
+        var getArtLocation = (function()
         {
+            var current = null;
+            return function()
+            {
+                var img = null;
+                var holder = null;
+
+                try
+                {
+                    // On the playlist page, things are easy
+                    holder = document.querySelector(".blackHole.playing, .blackHole.paused, .blackHole.spin");
+                    if (holder)
+                    {
+                        img = holder.querySelector("img");
+                        current = img.getAttribute("data-thumb");
+                        return current;
+                    }
+
+                    // Let's try a profile page
+                    holder = document.getElementById("jamHolder");
+                    // we care only if the profile page is for a playing or paused track
+                    if (holder && holder.querySelector(".playing, .paused, .spin"))
+                    {
+                        img = holder.querySelector("img");
+                        current = img.src;
+                        return current;
+                    }
+                }
+                catch (ex)
+                {}
+                // elsewhere cache the last known value
+                return current;
+            };
+        })();
+
+
+        /**
+         * Get play state depending on the play button
+         * @return {PlaybackState}
+         */
+        var playbackState = function()
+        {
+            var el = getElement("play");
+
+            if (!el)
+            {
+                return PlaybackState.UNKNOWN;
+            }
+
+            if (el.classList.contains("playing"))
+            {
+                return PlaybackState.PLAYING;
+            }
+            else if (el.classList.contains("paused"))
+            {
+                return PlaybackState.PAUSED;
+            }
+
             return PlaybackState.UNKNOWN;
-        }
+        };
 
-        if (el.classList.contains("playing"))
+        var likeState = function()
         {
-            return PlaybackState.PLAYING;
-        }
-        else if (el.classList.contains("paused"))
+            var el = getElement("like");
+            if (!el)
+            {
+                return false;
+            }
+            return el.classList.contains("liked");
+        };
+
+        var play = function(state)
         {
-            return PlaybackState.PAUSED;
-        }
-
-        return PlaybackState.UNKNOWN;
-    };
-
-    var getLikeState = function()
-    {
-        var el = getElement("like");
-        if (!el) {
+            if (state !== PlaybackState.UNKNOWN)
+            {
+                click("play");
+                return true;
+            }
+            var playAll = getElement("playAll");
+            if (playAll)
+            {
+                click(playAll);
+                return true;
+            }
             return false;
-        }
-        return el.classList.contains("liked");
-    };
+        };
 
-    var doPlayPause = function()
-    {
-        var play = getElement("play");
-        clickOnElement(play);
-    };
+        var click = function(type)
+        {
+            var el = getElement(type);
+            Nuvola.clickOnElement(el);
+        };
 
-    var doPlay = function(state)
-    {
-        if (state !== PlaybackState.UNKNOWN)
+
+        return Object.freeze(
         {
-            doPlayPause();
-            return true;
-        }
-        var playAll = getElement("playAll");
-        if (playAll)
-        {
-            clickOnElement(playAll);
-            return true;
-        }
-        return false;
-    };
+            getElement: getElement,
+            click: click,
+            canClick: canClick,
+            playbackState: playbackState,
+            likeState: likeState,
+            play: play,
+            artLocation: getArtLocation,
+        });
+    })();
 
     var buildTrack = function()
     {
@@ -190,7 +200,6 @@
             album: null
         });
     };
-    //////////////////////// END TMIJ bindings
 
     WebApp._onInitAppRunner = function(emitter)
     {
@@ -231,25 +240,28 @@
         this.update();
     };
 
+    WebApp.isPlaying = function()
+    {
+        return (this.state === PlaybackState.PLAYING);
+    };
+
     // Extract data from the web page
     WebApp.update = function()
     {
-
         // Playback state
-        this.state = getState();
+        this.state = timj.playbackState();
         player.setPlaybackState(this.state);
 
         // track parameters
         var track = buildTrack();
         try
         {
-            track.title = getElement("title").textContent;
-            track.artist = getElement("artist").textContent;
-            track.artLocation = getArtLocation();
+            track.title = timj.getElement("title").textContent;
+            track.artist = timj.getElement("artist").textContent;
+            track.artLocation = timj.artLocation();
         }
         catch (ex)
-        {
-        }
+        {}
         player.setTrack(track);
 
         // action buttons
@@ -259,20 +271,19 @@
             canPause = false;
         try
         {
-            canPrev = canPressButton("prev");
-            canNext = canPressButton("next");
-            if (this.state === PlaybackState.PLAYING)
+            canPrev = timj.canClick("prev");
+            canNext = timj.canClick("next");
+            if (this.isPlaying())
             {
-                canPause = canPressButton("play");
+                canPause = timj.canClick("play");
             }
             else
             {
-                canPlay = canPressButton("play") || canPressButton("playAll");
+                canPlay = timj.canClick("play") || timj.canClick("playAll");
             }
         }
         catch (ex)
-        {
-        }
+        {}
         // Update actions
         player.setCanGoPrev(canPrev);
         player.setCanGoNext(canNext);
@@ -280,8 +291,8 @@
         player.setCanPause(canPause);
 
         // extra actions
-        Nuvola.actions.updateEnabledFlag(ACTION_LIKE, canPressButton("like"));
-        Nuvola.actions.updateState(ACTION_LIKE, getLikeState());
+        Nuvola.actions.updateEnabledFlag(ACTION_LIKE, timj.canClick("like"));
+        Nuvola.actions.updateState(ACTION_LIKE, timj.likeState());
 
         // Schedule update
         setTimeout(this.update.bind(this), 500);
@@ -295,27 +306,27 @@
             case PlayerAction.PLAY:
                 if (this.state !== PlaybackState.PLAYING)
                 {
-                    doPlay(this.state);
+                    timj.play(this.state);
                 }
                 break;
             case PlayerAction.TOGGLE_PLAY:
-                doPlay(this.state);
+                timj.play(this.state);
                 break;
             case PlayerAction.PAUSE:
             case PlayerAction.STOP:
                 if (this.state === PlaybackState.PLAYING)
                 {
-                    doPlayPause();
+                    timj.click("play");
                 }
                 break;
             case PlayerAction.PREV_SONG:
-                clickOnElement(getElement("prev"));
+                timj.click("prev");
                 break;
             case PlayerAction.NEXT_SONG:
-                clickOnElement(getElement("next"));
+                timj.click("next");
                 break;
             case ACTION_LIKE:
-                clickOnElement(getElement("like"));
+                timj.click("like");
                 break;
         }
     };
