@@ -51,7 +51,8 @@
      * @param  {string} type Control type, e.g. prev, next, play, like…
      * @return {Element}
      */
-    var getElement = (function elementSelector() {
+    var getElement = (function elementSelector()
+    {
         var ELEM_IDS = {
             prev: "backwards",
             next: "forwards",
@@ -62,7 +63,8 @@
             playAll: "playAllJams"
         };
 
-        return function(type) {
+        return function(type)
+        {
             return document.getElementById(ELEM_IDS[type]);
         };
     })();
@@ -71,12 +73,10 @@
      * Get a state for a playlist's prev and next buttons.
      * @return {{prev: bool, next: bool}}
      */
-    var getPlaylistState = function() {
-        var ret = {};
-        ["prev", "next"].forEach(function(type) {
-            ret[type] = !getElement(type).hasAttribute("disabled");
-        });
-        return ret;
+    var canPressButton = function(type)
+    {
+        var el = getElement(type);
+        return el && !el.hasAttribute("disabled");
     };
 
     /**
@@ -86,16 +86,19 @@
      *       - OTOH, if I am playing a playlist and I am on the profile page, the incorrect
      *       art will be loaded and stored
      **/
-    var getArtLocation = function() {
+    var getArtLocation = function()
+    {
         var img = null;
         // On Playlist page, things are easy
         img = document.querySelector(".blackHole.playing img");
-        if (img) {
+        if (img)
+        {
             return img.getAttribute("data-thumb");
         }
         // Let's try a profile page
         img = document.querySelector("#jamHolder img");
-        if (img) {
+        if (img)
+        {
             return img.src;
         }
 
@@ -108,7 +111,8 @@
      * Get play state depending on the play button
      * @return {PlaybackState}
      */
-    var getState = function() {
+    var getState = function()
+    {
         var el = getElement("play");
 
         if (!el)
@@ -128,18 +132,37 @@
         return PlaybackState.UNKNOWN;
     };
 
-    var doPlay = function() {
+    var doPlayPause = function()
+    {
         var play = getElement("play");
-        if (getState() !== PlaybackState.UNKNOWN) {
-            clickOnElement(play);
+        clickOnElement(play);
+    };
+
+    var doPlay = function(state)
+    {
+        if (state !== PlaybackState.UNKNOWN)
+        {
+            doPlayPause();
             return true;
         }
         var playAll = getElement("playAll");
-        if (playAll) {
+        if (playAll)
+        {
             clickOnElement(playAll);
             return true;
         }
         return false;
+    };
+
+    var buildTrack = function()
+    {
+        return Object.seal(
+        {
+            title: null,
+            artist: null,
+            artLocation: null,
+            album: null
+        });
     };
     //////////////////////// END TMIJ bindings
 
@@ -174,55 +197,94 @@
     // Page is ready for magic
     WebApp._onPageReady = function()
     {
+        this.state = PlaybackState.UNKNOWN;
         // Start update routine
         this.update();
     };
 
     // Extract data from the web page
-    WebApp.update = function() {
-        // Default values
-        var state = PlaybackState.UNKNOWN;
-        var track = {
-            title: null,
-            artist: null,
-            artLocation: null,
-            album: null
-        };
-        var canPrev = false;
-        var canNext = false;
+    WebApp.update = function()
+    {
 
-        state = getState();
-        player.setPlaybackState(state);
+        // Playback state
+        this.state = getState();
+        player.setPlaybackState(this.state);
 
-        try {
+        // track parameters
+        var track = buildTrack();
+        try
+        {
             track.title = getElement("title").textContent;
             track.artist = getElement("artist").textContent;
             track.artLocation = getArtLocation();
         }
-        catch (ex) {
+        catch (ex)
+        {
             console.log(ex);
-            track.song = track.artist = track.artLocation = null;
         }
         player.setTrack(track);
 
-        try {
-            var playlist = getPlaylistState();
-            canPrev = playlist.prev;
-            canNext = playlist.next;
+        // action buttons
+        var canPrev = false,
+            canNext = false,
+            canPlay = false,
+            canPause = false;
+        try
+        {
+            canPrev = canPressButton("prev");
+            canNext = canPressButton("next");
+            if (this.state === PlaybackState.PLAYING)
+            {
+                canPause = canPressButton("play");
+            }
+            else
+            {
+                canPlay = canPressButton("play") || canPressButton("playAll");
+            }
         }
-        catch (ex) {
+        catch (ex)
+        {
             console.log(ex);
         }
         // Update actions
         player.setCanGoPrev(canPrev);
         player.setCanGoNext(canNext);
+        player.setCanPlay(canPlay);
+        player.setCanPause(canPause);
 
         // Schedule update
         setTimeout(this.update.bind(this), 500);
     };
 
     // Handler of playback actions
-    WebApp._onActionActivated = function(emitter, name, param) {};
+    WebApp._onActionActivated = function(emitter, name, param)
+    {
+        switch (name)
+        {
+            case PlayerAction.PLAY:
+                if (this.state !== PlaybackState.PLAYING)
+                {
+                    doPlay(this.state);
+                }
+                break;
+            case PlayerAction.TOGGLE_PLAY:
+                doPlay(this.state);
+                break;
+            case PlayerAction.PAUSE:
+            case PlayerAction.STOP:
+                if (this.state === PlaybackState.PLAYING)
+                {
+                    doPlayPause();
+                }
+                break;
+            case PlayerAction.PREV_SONG:
+                clickOnElement(getElement("prev"));
+                break;
+            case PlayerAction.NEXT_SONG:
+                clickOnElement(getElement("next"));
+                break;
+        }
+    };
 
     WebApp.start();
 
