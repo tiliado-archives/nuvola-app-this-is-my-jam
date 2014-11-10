@@ -65,6 +65,11 @@
             return document.getElementById(ELEM_IDS[type]);
         };
 
+        // this will work only if the target element is not fixed
+        var isHidden = function(el) {
+            return (el.offsetParent === null);
+        };
+
         /**
          * Helper for global controls; check if the named element is clickable.
          * @param  {string} type Name of the element to check
@@ -73,7 +78,7 @@
         var canClick = function(type)
         {
             var el = getElement(type);
-            return el && !el.hasAttribute("disabled");
+            return el && !el.hasAttribute("disabled") && !isHidden(el);
         };
 
         /**
@@ -206,6 +211,7 @@
         Nuvola.WebApp._onInitAppRunner.call(this, emitter);
 
         Nuvola.actions.addAction("playback", "win", ACTION_LIKE, C_("Action", "Love"), null, null, null, false);
+        Nuvola.actions.updateEnabledFlag(ACTION_LIKE, false);
     };
 
 
