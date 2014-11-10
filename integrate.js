@@ -65,6 +65,14 @@
             return document.getElementById(ELEM_IDS[type]);
         };
 
+        // get first play button; on homepage, this is first item in playlist,
+        // on profile, it is the only button
+        // TODO: move this into getElement by allowing custom getters for elements
+        //      (either compile a map of functions, or use querySelector?)
+        var getPlayAny = function() {
+            return document.querySelector(".itemPlayButton");
+        };
+
         // this will work only if the target element is not fixed
         var isHidden = function(el) {
             return (el.offsetParent === null);
@@ -75,9 +83,9 @@
          * @param  {string} type Name of the element to check
          * @return {bool}
          */
-        var canClick = function(type)
+        var canClick = function(typeOrEl)
         {
-            var el = getElement(type);
+            var el = getElement(typeOrEl) || typeOrEl;
             return el && !el.hasAttribute("disabled") && !isHidden(el);
         };
 
@@ -167,18 +175,19 @@
                 click("play");
                 return true;
             }
-            var playAll = getElement("playAll");
-            if (playAll)
+            // try to find any possible target play button
+            var playAny = getPlayAny();
+            if (playAny)
             {
-                click(playAll);
+                click(playAny);
                 return true;
             }
             return false;
         };
 
-        var click = function(type)
+        var click = function(typeOrEl)
         {
-            var el = getElement(type);
+            var el = getElement(typeOrEl) || typeOrEl;
             Nuvola.clickOnElement(el);
         };
 
@@ -192,6 +201,9 @@
             likeState: likeState,
             play: play,
             artLocation: getArtLocation,
+            canPlayAny: function() {
+                return canClick(getPlayAny());
+            },
         });
     })();
 
@@ -285,7 +297,7 @@
             }
             else
             {
-                canPlay = timj.canClick("play") || timj.canClick("playAll");
+                canPlay = timj.canClick("play") || timj.canPlayAny();
             }
         }
         catch (ex)
