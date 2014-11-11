@@ -40,7 +40,7 @@ help:
 deps:
 	@$(foreach dep, $(DEPS), which $(dep) > /dev/null || (echo "Program $(dep) not found"; exit 1;);)
 
-build: deps icon.png
+build: deps
 
 icon.png : src/icon.svg
 	rsvg-convert -w $(ICON_SIZE) -h $(ICON_SIZE) $< -o $@
@@ -48,7 +48,7 @@ icon.png : src/icon.svg
 clean:
 	rm -f icon.png
 
-install: LICENSE metadata.json integrate.js icon.png
+install: LICENSE metadata.json integrate.js
 	install -vCd $(DEST)/$(APP_ID)
 	install -vC $^ $(DEST)/$(APP_ID)
 
