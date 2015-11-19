@@ -1,9 +1,11 @@
 This is My Jam for Nuvola Player 3
 ==================================
 
+**Note:** This Is My Jam [ceased operation](http://thisismyjam.tumblr.com/post/126260430022/jam-preserves) and was converted [into an archive](https://www.thisismyjam.com/). This integration is not maintained anymore.
+
 Integration of This is My Jam into your linux desktop via
 [Nuvola Player](https://github.com/tiliado/nuvolaplayer).
- 
+
 Support
 -------
 
